@@ -44,9 +44,22 @@ docker compose exec -T backend alembic upgrade head
 say "Seeding database..."
 docker compose exec -T backend python scripts/seed.py
 
+say "Verifying that all containers are up and running..."
+docker compose ps
+for service in postgres redis backend frontend baileys-bridge; do
+  if ! docker compose ps "$service" | grep -q "Up"; then
+    err "Container for service '$service' failed to come up or exited."
+    exit 1
+  fi
+done
+say "All containers verified successfully!"
+
+say "Running automated RBAC verification check (Auditor -> /owner 403 Arabic check)..."
+docker compose exec -T backend python scripts/verify_rbac.py
+
 cat <<MSG
 
-AuditCore is up!
+AuditCore is up and fully verified!
 
 Frontend: http://localhost:5173
 Backend:  http://localhost:8000  (docs: /docs)
