@@ -37,8 +37,8 @@ def upgrade():
         op.execute(f"""
             CREATE POLICY {policy} ON {t}
             FOR ALL
-            USING (current_setting('app.current_user_role', true) IS DISTINCT FROM 'auditor')
-            WITH CHECK (current_setting('app.current_user_role', true) IS DISTINCT FROM 'auditor')
+            USING (current_setting('app.current_user_role', true) != 'auditor')
+            WITH CHECK (current_setting('app.current_user_role', true) != 'auditor')
         """)
 
     # Verification: insert a row bypassing RLS (superuser session here ignores FORCE? No: FORCE applies to table owners too.)
