@@ -12,16 +12,22 @@ if [ ! -f .env ]; then
   POSTGRES_PASSWORD=$(openssl rand -base64 24 | tr -d '=+/' | cut -c1-24)
   SECRET_KEY=$(openssl rand -hex 32)
   JWT_SECRET=$(openssl rand -hex 32)
+  ENCRYPTION_MASTER_KEY=$(openssl rand -hex 32)
   cat > .env <<EOF
 POSTGRES_DB=auditcore
 POSTGRES_USER=auditcore
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 SECRET_KEY=${SECRET_KEY}
 JWT_SECRET=${JWT_SECRET}
+ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY}
 EOF
 else
   say ".env already exists, leaving as-is."
 fi
+
+say "Ensuring data upload directory exists with proper permissions..."
+mkdir -p data/uploads
+chmod -R 777 data
 
 say "Building and starting containers..."
 docker compose up -d --build

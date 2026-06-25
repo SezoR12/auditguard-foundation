@@ -1,15 +1,16 @@
-# AuditCore — Phase 1 Foundation
+# AuditCore — Foundation & Phase 2 Ingestion Pipeline
 
-On-premise audit intelligence platform. Phase 1 ships the Dockerized stack,
+On-premise audit intelligence platform. Phase 1 & 2 ship the Dockerized stack,
 PostgreSQL schema with Row-Level Security (RLS), JWT auth, role-based access,
-and a minimal Arabic/RTL React frontend.
+secure document upload pipeline with AES-256-GCM encryption at rest, malware scan
+simulation via MIME type verification, and a fully Arabic/RTL React frontend.
 
 ## Stack
 
 - **postgres** 15-alpine (internal only) — main DB, `pgcrypto` for UUIDs.
 - **redis** 7-alpine (internal only) — reserved for Celery in a later phase.
-- **backend** — FastAPI (Python 3.11), SQLAlchemy 2.0 async, asyncpg, Alembic.
-- **frontend** — React 18 + Vite + TypeScript + TailwindCSS, fully RTL.
+- **backend** — FastAPI (Python 3.11), SQLAlchemy 2.0 async, asyncpg, Alembic, cryptography, python-magic.
+- **frontend** — React 18 + Vite + TypeScript + TailwindCSS + react-dropzone, fully RTL.
 - **baileys-bridge** — Node 20 placeholder for WhatsApp Web (later phase).
 
 ## Quick start
@@ -19,7 +20,7 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-`setup.sh` checks Docker, generates a `.env` with random secrets, builds the
+`setup.sh` checks Docker, generates a `.env` with random secrets (`ENCRYPTION_MASTER_KEY`, `SECRET_KEY`, etc.), builds the
 stack, runs migrations, and seeds demo users.
 
 - Frontend: http://localhost:5173
@@ -66,17 +67,30 @@ docker compose exec postgres psql -U auditcore -d auditcore -c \
 - `POST /auth/refresh` — refresh-token rotation.
 - `GET  /auth/me` — current user.
 - `GET  /owner/ping` — sample role-guarded endpoint; returns Arabic 403 for non-owners.
+- `POST /documents/upload` — secure document upload with AES-256-GCM encryption & MIME validation.
+- `GET  /documents/my-uploads` — documents uploaded by current auditor.
+- `GET  /documents/pending-certification` — documents pending certification for auditor's company.
+- `GET  /documents/company-documents` — entire company document listing (Owner/GM/Manager).
 
 All error responses set `detail` in Arabic.
+
+## Secure Ingestion & Encryption at Rest
+
+- All uploaded documents are validated against allowed extensions and MIME types (`python-magic`). Mismatches (e.g. `.exe` renamed to `.pdf`) are rejected immediately.
+- Files are saved to `/data/uploads/company_{id}/{year}/{month}/{uuid}_{filename}`.
+- Non-JSON files are encrypted at rest using **AES-256-GCM**. Keys are derived dynamically using `ENCRYPTION_MASTER_KEY` + `company_id` + `file_uuid`. Keys are **never** stored in the database.
+- `.json` files flagged as `encrypted_json` or `encrypted_report` are validated against their required schema (`metadata`, `encrypted_payload`) and stored as-is for downstream AI decryption.
 
 ## Frontend
 
 - `<html dir="rtl" lang="ar">` and Tajawal font by default.
 - `/login` → role-based redirect: owner → `/owner`, auditor → `/auditor`,
   manager → `/manager`, gm → `/gm`. Each role page shows `مرحباً {full_name}`.
+- Auditor dashboard contains a drag-and-drop interface (`react-dropzone`) with progress bars and listing tables.
+- Owner dashboard provides an overarching view of all uploaded company documents.
 - JWT stored in `localStorage` and attached via an axios interceptor.
 
-## Out of scope in Phase 1
+## Out of scope in Phase 2
 
-Document upload/OCR, audit task workflows, analytics generation, Celery
+OCR processing engine, AI decryption engine, audit task workflows, analytics generation, Celery
 workers, and the real Baileys/WhatsApp bridge.

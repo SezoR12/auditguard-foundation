@@ -19,6 +19,9 @@ class DocCategory(str, enum.Enum):
     contract = "contract"
     report = "report"
     receipt = "receipt"
+    bank_statement = "bank_statement"
+    inventory_report = "inventory_report"
+    encrypted_report = "encrypted_report"
     other = "other"
 
 class DocStatus(str, enum.Enum):

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     JWT_ALG: str = "HS256"
     ACCESS_TOKEN_MINUTES: int = 30
     REFRESH_TOKEN_DAYS: int = 7
+    ENCRYPTION_MASTER_KEY: str = "default-encryption-master-key-32-bytes"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
